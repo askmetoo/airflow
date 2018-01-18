@@ -873,6 +873,11 @@ class TaskInstance(Base, LoggingMixin):
             path = dag.full_filepath
         else:
             path = None
+        self.log.debug(
+            "command_as_list => path: %s",
+            path
+        )
+        path = None
 
         return TaskInstance.generate_command(
             self.dag_id,
@@ -2085,7 +2090,7 @@ class BaseOperator(LoggingMixin):
     :param task_concurrency: When set, a task will be able to limit the concurrent
         runs across execution_dates
     :type task_concurrency: int
-    :param executor_config: Additional task-level configuration parameters that are 
+    :param executor_config: Additional task-level configuration parameters that are
         interpreted by a specific executor. Parameters are namespaced by the name of executor.
         ``example: to run this task in a specific docker container through the KubernetesExecutor
         MyOperator(..., executor_config={"KubernetesExecutor": {"image": "myCustomDockerImage"}})``

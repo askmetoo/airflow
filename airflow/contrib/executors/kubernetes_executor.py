@@ -271,13 +271,17 @@ class AirflowKubernetesScheduler(LoggingMixin, object):
         status
         """
         self.log.info('k8s: job is {}'.format(str(next_job)))
+        self.log.info('and jordan added this')
         key, command, kube_executor_config = next_job
         dag_id, task_id, execution_date = key
-        self.log.debug("k8s: running for command {}".format(command))
+        self.log.debug("k8s: original command {}".format(command))
+        # separator = ' -sd'
+        # command = separator.join(command.split(separator)[:-1])
+        self.log.debug("k8s: running for updated command {}".format(command))
         self.log.debug("k8s: launching image {}".format(self.kube_config.kube_image))
         pod = self.worker_configuration.make_pod(
             namespace=self.namespace, pod_id=self._create_pod_id(dag_id, task_id),
-            dag_id=dag_id, task_id=task_id, 
+            dag_id=dag_id, task_id=task_id,
             execution_date=self._datetime_to_label_safe_datestring(execution_date),
             airflow_command=command, kube_executor_config=kube_executor_config
         )

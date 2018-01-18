@@ -40,9 +40,6 @@ class WorkerConfiguration:
                 'name': 'GIT_SYNC_BRANCH',
                 'value': self.kube_config.git_branch
             }, {
-                'name': 'GIT_SYNC_ROOT',
-                'value': '/tmp'
-            }, {
                 'name': 'GIT_SYNC_DEST',
                 'value': 'dags'
             }, {
@@ -79,7 +76,7 @@ class WorkerConfiguration:
         volume_mounts = [{
             'name': dags_volume_name,
             'mountPath': dags_path,
-            'readOnly': True
+            'readOnly': False
         }]
 
         # Mount the airflow.cfg file via a configmap the user has specified
@@ -107,12 +104,21 @@ class WorkerConfiguration:
         else:
             # Create a Shared Volume for the Git-Sync module to populate
             volumes[0]["emptyDir"] = {}
+        volumes.append({
+            'name': 'checkout',
+            'emptyDir': {}
+        })
+        volume_mounts.append({
+            'name': 'checkout',
+            'mountPath': '/git',
+            'readOnly': False
+        })
         return volumes, volume_mounts
 
     def _get_environment(self):
         """Defines any necessary environment variables for the pod executor"""
         env = {
-            'AIRFLOW__CORE__DAGS_FOLDER': '/tmp/dags',
+            'AIRFLOW__CORE__DAGS_FOLDER': '/root/airflow/dags',
             'AIRFLOW__CORE__EXECUTOR': 'LocalExecutor'
         }
         if self.kube_config.airflow_configmap:
@@ -143,12 +149,13 @@ class WorkerConfiguration:
             limit_cpu=kube_executor_config.limit_cpu
         )
 
+        combined_args = "ls /git/ && ls /git/dags/ && ls /git/rev*/ && ls /git/rev*/dags/ && cp -R /git/rev*/dags/* /root/airflow/dags/ && ls /root/airflow/dags/ && {}".format(airflow_command)
         return Pod(
             namespace=namespace,
             name=pod_id,
             image=kube_executor_config.image or self.kube_config.kube_image,
             cmds=["bash", "-cx", "--"],
-            args=[airflow_command],
+            args=[combined_args],
             labels={
                 "airflow-slave": "",
                 "dag_id": dag_id,
