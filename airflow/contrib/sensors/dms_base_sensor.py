@@ -39,27 +39,6 @@ class DMSBaseSensor(BaseSensorOperator):
         self.region_name = region_name
         self.replication_task_arn = replication_task_arn
 
-        # self.log.info('Starting DMS Delete Replication Task')
-        # self.client = self.hook.get_client_type(
-        #     'dms',
-        #     region_name=self.region_name
-        # )
-        # response = self.client.create_replication_task(
-        #     ReplicationTaskIdentifier=self.replication_task_identifier,
-        #     SourceEndpointArn=self.source_endpoint_arn,
-        #     TargetEndpointArn=self.target_endpoint_arn,
-        #     ReplicationInstanceArn=self.replication_instance_arn,
-        #     MigrationType=self.migration_type,
-        #     TableMappings=self.table_mappings,
-        #     ReplicationTaskSettings=self.replication_task_settings
-        # )
-        #
-        # if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
-        #     raise AirflowException('Creating DMS failed: %s' % response)
-        # else:
-        #     self.log.info('Running Create DMS Task with arn: %s', response['ReplicationTask']['ReplicationTaskArn'])
-        #     return response['ReplicationTask']['ReplicationTaskArn']
-
     def poke(self, context):
         response = self.get_dms_response()
 
@@ -68,7 +47,7 @@ class DMSBaseSensor(BaseSensorOperator):
             return False
 
         status = self.status_from_response(response)
-        self.log.info('DMS Replication task currently %s', status)
+        self.log.info('DMS Replication task (%s) currently %s', self.replication_task_arn, status)
 
         if status in self.NON_TERMINAL_STATUSES:
             return False
@@ -76,7 +55,11 @@ class DMSBaseSensor(BaseSensorOperator):
         if status in self.FAILED_STATUSES:
             raise AirflowException('DMS replication task failed')
 
-        return True
+        if status in self.TARGET_STATUSES:
+            return True
+
+        self.log.info('DMS Replication task (%s) will ignore unexpected status: %s', self.replication_task_arn, status)
+        return False
 
     def get_dms_response(self):
         self.log.info('Poking replication task %s', self.replication_task_arn)

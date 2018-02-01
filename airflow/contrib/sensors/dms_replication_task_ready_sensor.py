@@ -27,6 +27,7 @@ class DMSReplicationTaskReadySensor(DMSBaseSensor):
 
     NON_TERMINAL_STATUSES = ['creating', 'starting', 'running']
     FAILED_STATUSES = ['failed', 'stopped']
+    TARGET_STATUSES = ['ready']
     # template_fields = ['job_flow_id', 'step_id']
     # template_ext = ()
 
@@ -37,12 +38,3 @@ class DMSReplicationTaskReadySensor(DMSBaseSensor):
             # step_id,
             *args, **kwargs):
         super(DMSReplicationTaskReadySensor, self).__init__(*args, **kwargs)
-
-    # def get_emr_response(self):
-    #     emr = EmrHook(aws_conn_id=self.aws_conn_id).get_conn()
-    #
-    #     self.log.info('Poking step %s on cluster %s', self.step_id, self.job_flow_id)
-    #     return emr.describe_step(ClusterId=self.job_flow_id, StepId=self.step_id)
-    #
-    # def state_from_response(self, response):
-    #     return response['Step']['Status']['State']
