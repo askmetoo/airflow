@@ -38,9 +38,9 @@ class DMSCreateReplicationTaskOperator(BaseOperator):
     """
 
     ui_color = '#f0ede4'
-    client = None
-    arn = None
-    template_fields = ['replication_task_arn']
+    # template_fields = ['replication_task_arn']
+    template_fields = []
+    template_ext = ()
 
     @apply_defaults
     def __init__(self, replication_task_identifier, source_endpoint_arn, target_endpoint_arn,
@@ -63,7 +63,7 @@ class DMSCreateReplicationTaskOperator(BaseOperator):
     def execute(self, context):
         self.log.info('Starting DMS Delete Replication Task')
         self.client = self.hook.get_client_type(
-            'ecs',
+            'dms',
             region_name=self.region_name
         )
         response = self.client.create_replication_task(
@@ -79,7 +79,7 @@ class DMSCreateReplicationTaskOperator(BaseOperator):
         if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
             raise AirflowException('Creating DMS failed: %s' % response)
         else:
-            self.log.info('Running Create DMS Task')
+            self.log.info('Running Create DMS Task with arn: %s', response['ReplicationTask']['ReplicationTaskArn'])
             return response['ReplicationTask']['ReplicationTaskArn']
 
     def get_hook(self):

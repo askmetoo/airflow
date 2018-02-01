@@ -38,9 +38,9 @@ class DMSDeleteReplicationTaskOperator(BaseOperator):
     """
 
     ui_color = '#f0ede4'
-    client = None
-    arn = None
     template_fields = ['replication_task_arn']
+    # template_fields = []
+    template_ext = ()
 
     @apply_defaults
     def __init__(self, replication_task_arn,
@@ -56,7 +56,7 @@ class DMSDeleteReplicationTaskOperator(BaseOperator):
     def execute(self, context):
         self.log.info('Starting DMS Delete Replication Task')
         self.client = self.hook.get_client_type(
-            'ecs',
+            'dms',
             region_name=self.region_name
         )
         response = self.client.delete_replication_task(
@@ -66,7 +66,7 @@ class DMSDeleteReplicationTaskOperator(BaseOperator):
         if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
             raise AirflowException('Adding steps failed: %s' % response)
         else:
-            self.log.info('Running Delete DMS Task')
+            self.log.info('Running Delete DMS Task with arn: %s', response['ReplicationTask']['ReplicationTaskArn'])
             return response['ReplicationTask']['ReplicationTaskArn']
 
     def get_hook(self):
