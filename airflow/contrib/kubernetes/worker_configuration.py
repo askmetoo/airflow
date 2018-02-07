@@ -113,6 +113,15 @@ class WorkerConfiguration:
             'mountPath': '/git',
             'readOnly': False
         })
+        volumes.append({
+            'name': 'airflow-logging-config',
+            'emtpyDir': {}
+        })
+        volume_mounts.append({
+            'name': 'airflow-logging-config',
+            'mountPath': '/root/airflow/config',
+            'readOnly': False
+        })
         return volumes, volume_mounts
 
     def _get_environment(self):
@@ -149,7 +158,7 @@ class WorkerConfiguration:
             limit_cpu=kube_executor_config.limit_cpu
         )
 
-        combined_args = "ls /git/ && ls /git/dags/ && ls /git/rev*/ && ls /git/rev*/dags/ && cp -R /git/rev*/dags/* /root/airflow/dags/ && ls /root/airflow/dags/ && {}".format(airflow_command)
+        combined_args = "mkdir -p /root/airflow/config/ && cp -R /git/rev*/custom_logging/* /root/airflow/config/ && cp -R /git/rev*/dags/* /root/airflow/dags/ && ls /root/airflow/config/ && {}".format(airflow_command)
         return Pod(
             namespace=namespace,
             name=pod_id,
