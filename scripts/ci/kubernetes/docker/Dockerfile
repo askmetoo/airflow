@@ -24,8 +24,10 @@ RUN apt-get update -y && apt-get install -y \
         python-pip \
         libczmq-dev \
         libcurlpp-dev \
+        ntp \
         curl \
         libssl-dev \
+        libmysqlclient-dev \
         git \
         inetutils-telnet \
         bind9utils
@@ -35,6 +37,9 @@ RUN pip install -U setuptools && \
 
 RUN pip install kubernetes && \
     pip install cryptography && \
+    pip install boto3 && \
+    pip install sendgrid && \
+    pip install mysqlclient && \
     pip install psycopg2==2.7.3.1  # I had issues with older versions of psycopg2, just a warning
 
 # install airflow
