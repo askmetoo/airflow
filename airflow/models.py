@@ -542,6 +542,7 @@ class Connection(Base, LoggingMixin):
         ('hive_metastore', 'Hive Metastore Thrift',),
         ('hiveserver2', 'Hive Server 2 Thrift',),
         ('jdbc', 'Jdbc Connection',),
+        ('segment', 'Segment',),
         ('mysql', 'MySQL',),
         ('postgres', 'Postgres',),
         ('oracle', 'Oracle',),
@@ -702,6 +703,10 @@ class Connection(Base, LoggingMixin):
             elif self.conn_type == 'docker':
                 from airflow.hooks.docker_hook import DockerHook
                 return DockerHook(docker_conn_id=self.conn_id)
+            elif self.conn_type == 'segment':
+                from airflow.contrib.hooks.segment_hook import SegmentHook
+                return SegmentHook(segment_conn_id=self.conn_id)
+
         except:
             pass
 
