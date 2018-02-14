@@ -61,7 +61,7 @@ class SegmentHook(BaseHook, LoggingMixin):
         self.connection = self.get_connection(self.segment_conn_id)
         self.extras = self.connection.extra_dejson
         self.write_key = self.extras.get('write_key')
-        if not self.write_key:
+        if self.write_key is None:
             raise AirflowException('No Segment write key provided')
 
     def get_conn(self):
