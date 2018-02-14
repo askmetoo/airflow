@@ -50,7 +50,8 @@ _hooks = {
     'fs_hook': ['FSHook'],
     'wasb_hook': ['WasbHook'],
     'gcp_pubsub_hook': ['PubSubHook'],
-    'aws_dynamodb_hook': ['AwsDynamoDBHook']
+    'aws_dynamodb_hook': ['AwsDynamoDBHook'],
+    'segment_hook': ['SegmentHook'],
 }
 
 import os as _os
