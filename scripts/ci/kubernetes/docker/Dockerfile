@@ -40,6 +40,7 @@ RUN pip install kubernetes && \
     pip install boto3 && \
     pip install sendgrid && \
     pip install mysqlclient && \
+    pip install analytics-python && \
     pip install psycopg2==2.7.3.1  # I had issues with older versions of psycopg2, just a warning
 
 # install airflow
