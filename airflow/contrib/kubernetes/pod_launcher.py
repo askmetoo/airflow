@@ -13,15 +13,18 @@
 # limitations under the License.
 
 import json
-
+import time
 from airflow.contrib.kubernetes.pod import Pod
 from airflow.contrib.kubernetes.kubernetes_request_factory.pod_request_factory import (
     SimplePodRequestFactory)
+from airflow import AirflowException
 from airflow.utils.log.logging_mixin import LoggingMixin
 from airflow.utils.state import State
 from kubernetes import watch
 from kubernetes.client import V1Pod
 from kubernetes.client.rest import ApiException
+
+from requests.exceptions import HTTPError
 
 from .kube_client import get_kube_client
 
@@ -50,21 +53,37 @@ class PodLauncher(LoggingMixin):
             raise
         return resp
 
-    def run_pod(self, pod):
+    def run_pod(self, pod, get_logs=True):
         # type: (Pod) -> State
         """
         Launches the pod synchronously and waits for completion.
         """
         resp = self.run_pod_async(pod)
-        final_status = self._monitor_pod(pod)
+        final_status = self._monitor_pod(pod, get_logs)
         return final_status
 
-    def _monitor_pod(self, pod):
+    def _monitor_pod(self, pod, get_logs):
         # type: (Pod) -> State
-        for event in self._watch.stream(self.read_pod(pod), pod.namespace):
-            status = self._task_status(event)
-            if status == State.SUCCESS or status == State.FAILED:
-                return status
+
+        if get_logs:
+            logs = self._client.read_namespaced_pod_log(
+                name=pod.name,
+                namespace=pod.namespace,
+                follow=True,
+                tail_lines=10,
+                _preload_content=False)
+            for line in logs:
+                self.log.info(line)
+        else:
+            while self.pod_is_running(pod):
+                self.log.info("Pod {} has state {}".format(pod.name, State.RUNNING))
+                time.sleep(2)
+        return self._task_status(self.read_pod(pod))
+        # # type: (Pod) -> State
+        # for event in self._watch.stream(self.read_pod(pod), pod.namespace):
+        #     status = self._task_status(event)
+        #     if status == State.SUCCESS or status == State.FAILED:
+        #         return status
 
     def _task_status(self, event):
         # type: (V1Pod) -> State
@@ -76,7 +95,15 @@ class PodLauncher(LoggingMixin):
         return status
 
     def read_pod(self, pod):
-        return self._client.read_namespaced_pod(pod.name, pod.namespace)
+        try:
+            return self._client.read_namespaced_pod(pod.name, pod.namespace)
+        except HTTPError as e:
+            raise AirflowException("There was an error reading the kubernetes API: {}"
+                                   .format(e))
+
+    def pod_is_running(self, pod):
+        state = self._task_status(self.read_pod(pod))
+        return state != State.SUCCESS and state != State.FAILED
 
     def process_status(self, job_id, status):
         if status == PodStatus.PENDING:

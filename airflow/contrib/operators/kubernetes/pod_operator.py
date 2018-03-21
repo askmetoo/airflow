@@ -45,6 +45,7 @@ class PodOperator(PythonOperator):
         dag_run_id,
         pod,
         on_pod_success_func = blank_func,
+        get_logs=True,
         *args,
         **kwargs
     ):
@@ -57,6 +58,7 @@ class PodOperator(PythonOperator):
         self.pod = pod
         self.dag_run_id = dag_run_id
         self.pod_launcher = PodLauncher()
+        self.get_logs = get_logs
         self.kwargs = kwargs
         self._on_pod_success_func = on_pod_success_func
 
@@ -72,7 +74,7 @@ class PodOperator(PythonOperator):
         pod.labels['run_id'] = self.dag_run_id
         pod.namespace = self.dag.default_args.get('namespace', pod.namespace)
 
-        pod_result = self.pod_launcher.run_pod(pod)
+        pod_result = self.pod_launcher.run_pod(pod, self.get_logs)
 
         if pod_result == State.FAILED:
             raise AirflowException("Pod returned a failed status")
