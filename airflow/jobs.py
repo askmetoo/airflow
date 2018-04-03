@@ -377,9 +377,9 @@ class DagFileProcessor(AbstractDagFileProcessor, LoggingMixin):
                 log.info(
                     "Processing %s took %.3f seconds", file_path, end_time - start_time
                 )
-            except:
+            except Exception as e:
                 # Log exceptions through the logging framework.
-                log.exception("Got an exception! Propagating...")
+                log.exception("Got an exception! Propagating... => {}".format(e))
                 raise
             finally:
                 sys.stdout = sys.__stdout__

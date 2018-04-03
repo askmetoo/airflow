@@ -205,6 +205,7 @@ class KubernetesJobWatcher(multiprocessing.Process, LoggingMixin, object):
 
         last_resource_version = None
         for event in watcher.stream(kube_client.list_namespaced_pod, self.namespace, **kwargs):
+            # self.log.debug('Event seen: {}'.format(event))
             task = event['object']
             self.log.info(
                 "Event: {} had an event of type {}".format(task.metadata.name, event['type']))
@@ -250,6 +251,7 @@ class AirflowKubernetesScheduler(LoggingMixin, object):
 
     def _make_kube_watcher(self):
         resource_version = KubeResourceVersion.get_current_resource_version(self._session)
+        self.log.debug('Making kube watcher with resource version: {}'.format(resource_version))
         watcher = KubernetesJobWatcher(self.namespace, self.watcher_queue, resource_version)
         watcher.start()
         return watcher
@@ -498,11 +500,13 @@ class KubernetesExecutor(BaseExecutor, LoggingMixin):
         last_resource_version = None
         while not self.result_queue.empty():
             results = self.result_queue.get()
+            self.log.debug('result queue results: {}'.format(results))
             key, state, pod_id, resource_version = results
             last_resource_version = resource_version
             self.log.info("Changing state of {}".format(results))
             self._change_state(key, state, pod_id)
 
+        self.log.debug('Now sync resource version: {}'.format(last_resource_version))
         KubeResourceVersion.checkpoint_resource_version(
             last_resource_version, session=self._session)
 
