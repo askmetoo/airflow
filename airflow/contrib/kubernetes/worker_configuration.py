@@ -148,7 +148,7 @@ class WorkerConfiguration:
             return []
         return self.kube_config.image_pull_secrets.split(',')
 
-    def make_pod(self, namespace, pod_id, dag_id, task_id, execution_date, airflow_command, kube_executor_config):
+    def make_pod(self, namespace, worker_uuid, pod_id, dag_id, task_id, execution_date, airflow_command, kube_executor_config):
         volumes, volume_mounts = self._get_volumes_and_mounts()
         worker_init_container_spec = self._get_init_containers(copy.deepcopy(volume_mounts))
         resources = Resources(
@@ -166,7 +166,7 @@ class WorkerConfiguration:
             cmds=["bash", "-cx", "--"],
             args=[combined_args],
             labels={
-                "airflow-slave": "",
+                "airflow-slave": worker_uuid,
                 "dag_id": dag_id,
                 "task_id": task_id,
                 "execution_date": execution_date

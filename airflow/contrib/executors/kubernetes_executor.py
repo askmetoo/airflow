@@ -27,7 +27,7 @@ from airflow.contrib.kubernetes.kube_client import get_kube_client
 from airflow.contrib.kubernetes.worker_configuration import WorkerConfiguration
 from airflow.executors.base_executor import BaseExecutor
 from airflow.executors import Executors
-from airflow.models import TaskInstance, KubeResourceVersion
+from airflow.models import TaskInstance, KubeResourceVersion, KubeWorkerIdentifier
 from airflow.utils.state import State
 from airflow import configuration, settings
 from airflow.exceptions import AirflowConfigException
@@ -175,17 +175,18 @@ class KubeConfig:
 
 
 class KubernetesJobWatcher(multiprocessing.Process, LoggingMixin, object):
-    def __init__(self, namespace, watcher_queue, resource_version):
+    def __init__(self, namespace, watcher_queue, resource_version, worker_uuid):
         multiprocessing.Process.__init__(self)
         self.namespace = namespace
         self.watcher_queue = watcher_queue
         self.resource_version = resource_version
+        self.worker_uuid = worker_uuid
 
     def run(self):
         kube_client = get_kube_client()
         while True:
             try:
-                self.resource_version = self._run(kube_client, self.resource_version)
+                self.resource_version = self._run(kube_client, self.resource_version, self.worker_uuid)
             except Exception:
                 self.log.exception("Unknown error in KubernetesJobWatcher. Failing")
                 raise
@@ -193,17 +194,19 @@ class KubernetesJobWatcher(multiprocessing.Process, LoggingMixin, object):
                 self.log.warn("Watch died gracefully, starting back up with: "
                               "last resource_version: {}".format(self.resource_version))
 
-    def _run(self, kube_client, resource_version):
+    def _run(self, kube_client, resource_version, worker_uuid):
         self.log.info(
             "Event: and now my watch begins starting at resource_version: {}"
             .format(resource_version))
         watcher = watch.Watch()
 
-        kwargs = {"label_selector": "airflow-slave"}
+        # kwargs = {"label_selector": "airflow-slave"}
+        kwargs = {"label_selector": "airflow-slave={}".format(worker_uuid)}
         if resource_version:
             kwargs["resource_version"] = resource_version
 
         last_resource_version = None
+        self.log.debug('list_namespaced_pod with kwargs: {}'.format(kwargs))
         for event in watcher.stream(kube_client.list_namespaced_pod, self.namespace, **kwargs):
             # self.log.debug('Event seen: {}'.format(event))
             task = event['object']
@@ -235,7 +238,7 @@ class KubernetesJobWatcher(multiprocessing.Process, LoggingMixin, object):
 
 
 class AirflowKubernetesScheduler(LoggingMixin, object):
-    def __init__(self, kube_config, task_queue, result_queue, session, kube_client):
+    def __init__(self, kube_config, task_queue, result_queue, session, kube_client, worker_uuid):
         self.log.debug("creating kubernetes executor")
         self.kube_config = kube_config
         self.task_queue = task_queue
@@ -247,12 +250,13 @@ class AirflowKubernetesScheduler(LoggingMixin, object):
         self.worker_configuration = WorkerConfiguration(kube_config=self.kube_config)
         self.watcher_queue = multiprocessing.Queue()
         self._session = session
+        self.worker_uuid = worker_uuid
         self.kube_watcher = self._make_kube_watcher()
 
     def _make_kube_watcher(self):
         resource_version = KubeResourceVersion.get_current_resource_version(self._session)
         self.log.debug('Making kube watcher with resource version: {}'.format(resource_version))
-        watcher = KubernetesJobWatcher(self.namespace, self.watcher_queue, resource_version)
+        watcher = KubernetesJobWatcher(self.namespace, self.watcher_queue, resource_version, self.worker_uuid)
         watcher.start()
         return watcher
 
@@ -282,7 +286,7 @@ class AirflowKubernetesScheduler(LoggingMixin, object):
         self.log.debug("k8s: running for updated command {}".format(command))
         self.log.debug("k8s: launching image {}".format(self.kube_config.kube_image))
         pod = self.worker_configuration.make_pod(
-            namespace=self.namespace, pod_id=self._create_pod_id(dag_id, task_id),
+            namespace=self.namespace, worker_uuid=self.worker_uuid, pod_id=self._create_pod_id(dag_id, task_id),
             dag_id=dag_id, task_id=task_id,
             execution_date=self._datetime_to_label_safe_datestring(execution_date),
             airflow_command=command, kube_executor_config=kube_executor_config
@@ -405,6 +409,7 @@ class KubernetesExecutor(BaseExecutor, LoggingMixin):
         self.result_queue = None
         self.kube_scheduler = None
         self.kube_client = None
+        self.worker_uuid = None
         super(KubernetesExecutor, self).__init__(parallelism=self.kube_config.parallelism)
 
     def clear_not_launched_queued_tasks(self):
@@ -425,10 +430,12 @@ class KubernetesExecutor(BaseExecutor, LoggingMixin):
             "When executor started up, found {} queued task instances".format(len(queued_tasks)))
 
         for t in queued_tasks:
-            kwargs = dict(label_selector="dag_id={},task_id={},execution_date={}".format(
+            kwargs = dict(label_selector="dag_id={},task_id={},execution_date={},airflow-slave={}".format(
                 t.dag_id, t.task_id,
-                AirflowKubernetesScheduler._datetime_to_label_safe_datestring(t.execution_date)
+                AirflowKubernetesScheduler._datetime_to_label_safe_datestring(t.execution_date),
+                self.worker_uuid
             ))
+            self.log.debug('list_namespaced_pod with kwargs: {}'.format(kwargs))
             pod_list = self.kube_client.list_namespaced_pod(
                 self.kube_config.kube_namespace, **kwargs)
             if len(pod_list.items) == 0:
@@ -475,11 +482,13 @@ class KubernetesExecutor(BaseExecutor, LoggingMixin):
     def start(self):
         self.log.info('k8s: starting kubernetes executor')
         self._session = settings.Session()
+        self.worker_uuid = KubeWorkerIdentifier.get_or_create_current_kube_worker_uuid(self._session)
+        self.log.debug('k8s: starting with worker_uuid: {}'.format(self.worker_uuid))
         self.task_queue = Queue()
         self.result_queue = Queue()
         self.kube_client = get_kube_client()
         self.kube_scheduler = AirflowKubernetesScheduler(
-            self.kube_config, self.task_queue, self.result_queue, self._session, self.kube_client
+            self.kube_config, self.task_queue, self.result_queue, self._session, self.kube_client, self.worker_uuid
         )
         self._inject_secrets()
         self.clear_not_launched_queued_tasks()
