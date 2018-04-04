@@ -38,14 +38,14 @@ class DMSReplicationTaskStoppedSensor(DMSBaseSensor):
             self,
             # job_flow_id,
             # step_id,
-            stop_reason,
+            stop_reasons,
             *args, **kwargs):
         super(DMSReplicationTaskStoppedSensor, self).__init__(*args, **kwargs)
-        self.stop_reason = stop_reason
+        self.stop_reasons = stop_reasons
 
     def stop_reason_handling(self, stop_reason):
-        if stop_reason != self.stop_reason:
+        if stop_reason not in self.stop_reasons:
             raise AirflowException(
-                'DMS replication task: %s failed to stop with reason %s but instead %s',
-                self.replication_task_arn, self.stop_reason, stop_reason
+                'DMS replication task: %s failed to stop with acceptable reasons %s but instead %s',
+                self.replication_task_arn, self.stop_reasons, stop_reason
             )
