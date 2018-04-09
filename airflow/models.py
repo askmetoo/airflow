@@ -4850,10 +4850,22 @@ class ImportError(Base):
     stacktrace = Column(Text)
 
 
-class KubeResourceVersion(Base):
+class KubeResourceVersion(Base, LoggingMixin):
     __tablename__ = "kube_resource_version"
     one_row_id = Column(Boolean, server_default=sqltrue(), primary_key=True)
     resource_version = Column(String(255))
+    log = LoggingMixin().log
+
+    @staticmethod
+    @provide_session
+    def reset_resource_version(session=None):
+        KubeResourceVersion.log.debug('Reset resource version')
+        session.query(KubeResourceVersion).update({
+            KubeResourceVersion.resource_version: '0'
+        })
+        session.commit()
+        return '0'
+
 
     @staticmethod
     @provide_session
@@ -4864,13 +4876,15 @@ class KubeResourceVersion(Base):
     @staticmethod
     @provide_session
     def checkpoint_resource_version(resource_version, session=None):
+        KubeResourceVersion.log.debug('Checkpoint resource version: {} with type: {}'.format(resource_version, type(resource_version)))
         if resource_version:
+            KubeResourceVersion.log.debug('Now update resource version: {} with type: {}'.format(resource_version, type(resource_version)))
             session.query(KubeResourceVersion).update({
                 KubeResourceVersion.resource_version: resource_version
             })
             session.commit()
 
-class KubeWorkerIdentifier(Base, LoggingMixin):
+class KubeWorkerIdentifier(Base):
     __tablename__ = "kube_worker_uuid"
     one_row_id = Column(Boolean, server_default=sqltrue(), primary_key=True)
     worker_uuid = Column(String(255))

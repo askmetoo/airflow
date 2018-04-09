@@ -30,7 +30,7 @@ from airflow.executors import Executors
 from airflow.models import TaskInstance, KubeResourceVersion, KubeWorkerIdentifier
 from airflow.utils.state import State
 from airflow import configuration, settings
-from airflow.exceptions import AirflowConfigException
+from airflow.exceptions import AirflowConfigException, AirflowException
 from airflow.contrib.kubernetes.pod import Pod, Resources
 from airflow.utils.log.logging_mixin import LoggingMixin
 
@@ -187,8 +187,8 @@ class KubernetesJobWatcher(multiprocessing.Process, LoggingMixin, object):
         while True:
             try:
                 self.resource_version = self._run(kube_client, self.resource_version, self.worker_uuid)
-            except Exception:
-                self.log.exception("Unknown error in KubernetesJobWatcher. Failing")
+            except Exception as e:
+                self.log.exception("Unknown error in KubernetesJobWatcher. Failing => {}".format(e))
                 raise
             else:
                 self.log.warn("Watch died gracefully, starting back up with: "
@@ -203,22 +203,37 @@ class KubernetesJobWatcher(multiprocessing.Process, LoggingMixin, object):
         # kwargs = {"label_selector": "airflow-slave"}
         kwargs = {"label_selector": "airflow-slave={}".format(worker_uuid)}
         if resource_version:
+            self.log.debug('Watching with resource version: {} of type: {}'.format(resource_version, type(resource_version)))
             kwargs["resource_version"] = resource_version
+        else:
+            self.log.debug('Watching without resource version!!!!!!!')
 
         last_resource_version = None
         self.log.debug('list_namespaced_pod with kwargs: {}'.format(kwargs))
         for event in watcher.stream(kube_client.list_namespaced_pod, self.namespace, **kwargs):
             # self.log.debug('Event seen: {}'.format(event))
             task = event['object']
-            self.log.info(
-                "Event: {} had an event of type {}".format(task.metadata.name, event['type']))
+            if event['type'] == 'ERROR':
+                return self.process_error(event)
             self.process_status(
                 task.metadata.name, task.status.phase, task.metadata.labels,
                 task.metadata.resource_version
             )
+            self.log.debug('Streamed resource version: {} with type: {}'.format(task.metadata.resource_version, type(task.metadata.resource_version)))
             last_resource_version = task.metadata.resource_version
 
         return last_resource_version
+
+    def process_error(self, event):
+        self.log.error('Encountered Error response from k8s list namespaced pod stream => {}'.format(event))
+        raw_object = event['raw_object']
+        if raw_object['code'] == 410:
+            self.log.info('Kubernetes resource version is too old, must reset to 0 => {}'.format(raw_object['message']))
+            # Return resource version 0
+            return '0'
+        raise AirflowException(
+            'Kubernetes failure for {reason} with code {code} and message: {}'.format(raw_object['reason'], raw_object['code'], raw_object['message'])
+        )
 
     def process_status(self, pod_id, status, labels, resource_version):
         if status == 'Pending':
@@ -435,7 +450,7 @@ class KubernetesExecutor(BaseExecutor, LoggingMixin):
                 AirflowKubernetesScheduler._datetime_to_label_safe_datestring(t.execution_date),
                 self.worker_uuid
             ))
-            self.log.debug('list_namespaced_pod with kwargs: {}'.format(kwargs))
+            self.log.debug('Clear => list_namespaced_pod with kwargs: {}'.format(kwargs))
             pod_list = self.kube_client.list_namespaced_pod(
                 self.kube_config.kube_namespace, **kwargs)
             if len(pod_list.items) == 0:
@@ -483,6 +498,8 @@ class KubernetesExecutor(BaseExecutor, LoggingMixin):
         self.log.info('k8s: starting kubernetes executor')
         self._session = settings.Session()
         self.worker_uuid = KubeWorkerIdentifier.get_or_create_current_kube_worker_uuid(self._session)
+        # always need to reset resource version in case it gets too old
+        KubeResourceVersion.reset_resource_version(self._session)
         self.log.debug('k8s: starting with worker_uuid: {}'.format(self.worker_uuid))
         self.task_queue = Queue()
         self.result_queue = Queue()
