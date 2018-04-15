@@ -23,7 +23,7 @@ echo "For development, start minikube yourself (ie: minikube start) then run thi
 
 DIRNAME=$(cd "$(dirname "$0")"; pwd)
 
-$DIRNAME/minikube/start_minikube.sh
+$DIRNAME/minikube/start_minikube_2.sh
 $DIRNAME/docker/build.sh
 $DIRNAME/kube/deploy.sh
 

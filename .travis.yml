@@ -14,6 +14,8 @@
 sudo: true
 dist: trusty
 language: python
+cache: pip
+
 jdk:
   - oraclejdk8
 services:
@@ -77,8 +79,8 @@ matrix:
     - python: "3.5"
       env: TOX_ENV=py27-backend_postgres KUBERNETES_VERSION=v1.9.0
   allow_failures:
+    - env: TOX_ENV=py27-backend_postgres KUBERNETES_VERSION=v1.8.0
     - env: TOX_ENV=py27-backend_postgres KUBERNETES_VERSION=v1.9.0
-    - env: TOX_ENV=py27-backend_postgres KUBERNETES_VERSION=v1.10.0
 cache:
   directories:
     - $HOME/.wheelhouse/
