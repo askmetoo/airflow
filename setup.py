@@ -176,6 +176,7 @@ kubernetes = ['kubernetes>=3.0.0',
               'cryptography>=2.0.0']
 snowflake = ['snowflake-connector-python>=1.5.2',
              'snowflake-sqlalchemy>=1.1.0']
+segment = ['analytics-python>=1.2.9']
 zendesk = ['zdesk']
 
 all_dbs = postgres + mysql + hive + mssql + hdfs + vertica + cloudant + druid + pinot
@@ -201,7 +202,7 @@ devel_hadoop = devel_minreq + hive + hdfs + webhdfs + kerberos
 devel_all = (sendgrid + devel + all_dbs + doc + samba + s3 + slack + crypto + oracle +
              docker + ssh + kubernetes + celery + azure + redis + gcp_api + datadog +
              zendesk + jdbc + ldap + kerberos + password + webhdfs + jenkins +
-             druid + pinot + snowflake + elasticsearch)
+             druid + pinot + snowflake + segment + elasticsearch)
 
 # Snakebite & Google Cloud Dataflow are not Python 3 compatible :'(
 if PY3:
@@ -310,7 +311,8 @@ def do_setup():
             'jira': jira,
             'redis': redis,
             'kubernetes': kubernetes,
-            'snowflake': snowflake
+            'snowflake': snowflake,
+            'segment': segment
         },
         classifiers=[
             'Development Status :: 5 - Production/Stable',
