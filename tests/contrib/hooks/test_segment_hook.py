@@ -34,14 +34,11 @@ class TestSegmentHook(unittest.TestCase):
         configuration.load_test_config()
 
         self.conn = conn = mock.MagicMock()
+        conn.write_key = WRITE_KEY
         self.expected_write_key = WRITE_KEY
         self.conn.extra_dejson = {'write_key': self.expected_write_key}
 
         class UnitTestSegmentHook(SegmentHook):
-
-            @property
-            def write_key(self):
-                return WRITE_KEY
 
             def get_conn(self):
                 return conn
