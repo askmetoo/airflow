@@ -50,8 +50,8 @@ class TestSegmentHook(unittest.TestCase):
     def test_get_conn(self):
         expected_connection = self.test_hook.get_conn()
         self.assertEqual(expected_connection, self.conn)
-        self.assertIsNotNone(self.expected_connection.write_key)
-        self.assertEqual(self.expected_connection.write_key, self.expected_write_key)
+        self.assertIsNotNone(expected_connection.write_key)
+        self.assertEqual(expected_connection.write_key, self.expected_write_key)
 
     def test_on_error(self):
         with self.assertRaises(AirflowException):

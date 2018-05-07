@@ -46,7 +46,7 @@ class SegmentTrackEventOperatorTest(unittest.TestCase):
         operator.execute(None)
 
         mock_hook.return_value.track.assert_called_once_with(
-            user_id=USER_ID, event=EVENT, properties=PROPERTIES)
+            USER_ID, EVENT, PROPERTIES)
 
 
 if __name__ == '__main__':
