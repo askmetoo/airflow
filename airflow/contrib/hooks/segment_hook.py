@@ -54,7 +54,7 @@ class SegmentHook(BaseHook, LoggingMixin):
         :type segment_conn_id: str
         :param segment_debug_mode: Determines whether Segment should run in debug mode.
         Defaults to False
-        :type segment_debug_mode: False
+        :type segment_debug_mode: boolean
         .. note::
             You must include a JSON structure in the `Extras` field.
             We need a user's security token to connect to Segment.
@@ -77,7 +77,7 @@ class SegmentHook(BaseHook, LoggingMixin):
         self.log.info('Setting write key for Segment analytics connection')
         analytics.debug = self.segment_debug_mode
         if self.segment_debug_mode:
-            self.log.debug('Setting Segment analytics connection to debug mode')
+            self.log.info('Setting Segment analytics connection to debug mode')
         analytics.on_error = self.on_error
         analytics.write_key = self.write_key
         return analytics
