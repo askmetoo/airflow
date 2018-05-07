@@ -25,6 +25,7 @@ from airflow import configuration, AirflowException
 from airflow.contrib.hooks.segment_hook import SegmentHook
 
 TEST_CONN_ID = 'test_segment'
+WRITE_KEY = 'foo'
 
 class TestSegmentHook(unittest.TestCase):
 
@@ -33,11 +34,14 @@ class TestSegmentHook(unittest.TestCase):
         configuration.load_test_config()
 
         self.conn = conn = mock.MagicMock()
-        self.expected_write_key = 'foo'
+        self.expected_write_key = WRITE_KEY
         self.conn.extra_dejson = {'write_key': self.expected_write_key}
 
         class UnitTestSegmentHook(SegmentHook):
-            conn_name_attr = 'segment_conn_id'
+
+            @property
+            def write_key(self):
+                return WRITE_KEY
 
             def get_conn(self):
                 return conn
