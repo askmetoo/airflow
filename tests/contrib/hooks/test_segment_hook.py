@@ -24,6 +24,7 @@ from airflow import configuration, AirflowException
 
 from airflow.contrib.hooks.segment_hook import SegmentHook
 
+TEST_CONN_ID = 'test_segment'
 
 class TestSegmentHook(unittest.TestCase):
 
@@ -44,7 +45,7 @@ class TestSegmentHook(unittest.TestCase):
             def get_connection(self, connection_id):
                 return conn
 
-        self.test_hook = UnitTestSegmentHook()
+        self.test_hook = UnitTestSegmentHook(segment_conn_id=TEST_CONN_ID)
 
     def test_get_conn(self):
         expected_connection = self.test_hook.get_conn()
