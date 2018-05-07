@@ -22,7 +22,7 @@ from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 
 
-class SegmentSendTrackEventOperator(BaseOperator):
+class SegmentTrackEventOperator(BaseOperator):
     """
     Send Track Event to Segment for a specified user_id and event
 
@@ -50,7 +50,7 @@ class SegmentSendTrackEventOperator(BaseOperator):
                  segment_debug_mode=False,
                  *args,
                  **kwargs):
-        super(SegmentSendTrackEventOperator, self).__init__(*args, **kwargs)
+        super(SegmentTrackEventOperator, self).__init__(*args, **kwargs)
         self.user_id = user_id
         self.event = event
         properties = properties or {}
