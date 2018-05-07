@@ -32,7 +32,7 @@ except ImportError:
 
 TASK_ID = 'test-segment-track-event-operator'
 USER_ID = '12345'
-PROPERTIES = { 'foo': 'bar' }
+PROPERTIES = {'foo': 'bar'}
 EVENT = 'Test'
 
 

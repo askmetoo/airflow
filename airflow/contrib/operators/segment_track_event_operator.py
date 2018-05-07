@@ -66,8 +66,5 @@ class SegmentTrackEventOperator(BaseOperator):
             'Sending track event ({0}) for user id: {1} with properties: {2}'.
             format(self.event, self.user_id, self.properties))
 
-        response = hook.track(
-                            self.user_id,
-                            self.event,
-                            self.properties)
+        response = hook.track(self.user_id, self.event, self.properties)
         self.log.info('Received Segment response: {}'.format(response))

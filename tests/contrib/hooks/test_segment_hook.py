@@ -27,6 +27,7 @@ from airflow.contrib.hooks.segment_hook import SegmentHook
 TEST_CONN_ID = 'test_segment'
 WRITE_KEY = 'foo'
 
+
 class TestSegmentHook(unittest.TestCase):
 
     def setUp(self):
