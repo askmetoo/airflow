@@ -158,7 +158,11 @@ class WorkerConfiguration:
             limit_cpu=kube_executor_config.limit_cpu
         )
 
-        combined_args = "mkdir -p /root/airflow/config/ && cp -R /git/rev*/custom_logging/* /root/airflow/config/ && cp -R /git/rev*/dags/* /root/airflow/dags/ && {}".format(airflow_command)
+        dag_path = '/git/rev*/dags'
+        if self.kube_config.git_subpath:
+            dag_path = os.path.join(dag_path, self.kube_config.git_subpath)
+        dag_path = os.path.join(dag_path, '*')
+        combined_args = "mkdir -p /root/airflow/config/ && cp -R /git/rev*/custom_logging/* /root/airflow/config/ && cp -R /git/rev*/dags/subdags/* /root/airflow/dags/subdags/ && cp -R {dag_source} /root/airflow/dags/ && {args}".format(dag_source=dag_path, command=airflow_command)
         return Pod(
             namespace=namespace,
             name=pod_id,
