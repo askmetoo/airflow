@@ -162,7 +162,7 @@ class WorkerConfiguration:
         if self.kube_config.git_subpath:
             dag_path = os.path.join(dag_path, self.kube_config.git_subpath)
         dag_path = os.path.join(dag_path, '*')
-        combined_args = "mkdir -p /root/airflow/config/ && cp -R /git/rev*/custom_logging/* /root/airflow/config/ && cp -R /git/rev*/dags/subdags/* /root/airflow/dags/subdags/ && cp -R {dag_source} /root/airflow/dags/ && {args}".format(dag_source=dag_path, command=airflow_command)
+        combined_args = "mkdir -p /root/airflow/config/ && cp -R /git/rev*/custom_logging/* /root/airflow/config/ && mkdir -p /root/airflow/dags/subdags/ && cp -R /git/rev*/dags/subdags/* /root/airflow/dags/subdags/ && cp -R {dag_source} /root/airflow/dags/ && {command}".format(dag_source=dag_path, command=airflow_command)
         return Pod(
             namespace=namespace,
             name=pod_id,
