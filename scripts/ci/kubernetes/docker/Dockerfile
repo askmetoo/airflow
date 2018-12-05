@@ -33,19 +33,19 @@ RUN apt-get update -y && apt-get install -y \
         bind9utils
 
 RUN pip install -U setuptools && \
-    pip install -U pip
+    pip install -U pip==9.0.1
 
-RUN pip install kubernetes && \
-    pip install cryptography && \
-    pip install boto3 && \
-    pip install sendgrid && \
-    pip install mysqlclient && \
-    pip install analytics-python && \
-    pip install hive-thrift-py && \
-    pip install pyhive && \
-    pip install impyla && \
-    pip install unicodecsv && \
-    pip install psycopg2==2.7.3.1  # I had issues with older versions of psycopg2, just a warning
+RUN pip install kubernetes==5.0.0 && \
+    pip install cryptography==2.2.1 && \
+    pip install boto3==1.6.16 && \
+    pip install sendgrid==5.3.0 && \
+    pip install mysqlclient==1.3.12 && \
+    pip install analytics-python==1.2.9 && \
+    pip install hive-thrift-py==0.0.1 && \
+    pip install PyHive==0.5.1 && \
+    pip install impyla==0.14.1 && \
+    pip install unicodecsv==0.14.1 && \
+    pip install psycopg2==2.7.3.1  # I had issues with older versions
 
 # install airflow
 COPY airflow.tar.gz /tmp/airflow.tar.gz
