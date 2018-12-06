@@ -36,6 +36,7 @@ import zipfile
 import jinja2
 import json
 import logging
+import numbers
 import os
 import pickle
 import re
@@ -2454,6 +2455,8 @@ class BaseOperator(LoggingMixin):
             result = jinja_env.from_string(content).render(**context)
         elif isinstance(content, (list, tuple)):
             result = [rt(attr, e, context) for e in content]
+        elif isinstance(content, numbers.Number):
+            result = content
         elif isinstance(content, dict):
             result = {
                 k: rt("{}[{}]".format(attr, k), v, context)

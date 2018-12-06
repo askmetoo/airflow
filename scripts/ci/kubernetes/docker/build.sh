@@ -24,5 +24,4 @@ AIRFLOW_ROOT="$DIRNAME/../../../.."
 
 cd $AIRFLOW_ROOT && python setup.py sdist && cp $AIRFLOW_ROOT/dist/*.tar.gz $DIRNAME/airflow.tar.gz && \
 cd $DIRNAME && \
-docker build -f Dockerfile $DIRNAME --tag=${IMAGE}:${TAG} && \
-docker build -f Dockerfile_zip $DIRNAME --tag=${IMAGE}_zip:${TAG}
+docker build --no-cache -f Dockerfile $DIRNAME --tag=${IMAGE}:${TAG}
